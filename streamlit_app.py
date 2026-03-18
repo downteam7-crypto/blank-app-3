@@ -119,6 +119,11 @@ with st.sidebar:
     selected_station = st.selectbox("Select Station", region_stations)
     
     st.divider()
+    st.subheader("Select Date & Time")
+    # Will be populated after filtering data below
+    station_times_placeholder = st.empty()
+    
+    st.divider()
     st.caption("Data Source: 한국환경공단 (Jan 2025)")
 
 # Filter data for the region/station
@@ -127,6 +132,11 @@ df_filtered = df_air[(df_air['지역'] == selected_region) & (df_air['측정소�
 if df_filtered.empty:
     st.warning("No data found for the selected station.")
     st.stop()
+
+# Build the timestamp selector in the sidebar placeholder
+available_times = df_filtered['측정일시'].dt.strftime('%Y-%m-%d %H:%M').tolist()
+with station_times_placeholder:
+    selected_time_str = st.selectbox("Measurement Time", available_times, index=len(available_times)-1)
 
 # Input Section
 st.markdown("### Step 1. 기사/평가 문구 입력")
@@ -142,9 +152,9 @@ air_text = st.text_area("Input air quality description", value=st.session_state.
 analyze_btn = st.button("Analyze Alignment", type="primary")
 
 if analyze_btn and air_text:
-    # Logic to pick the last available PM10 in Jan 2025 for contrast or just a random day
-    # Let's say we pick the latest record in our 2025/01 dataset for that station
-    latest_record = df_filtered.iloc[-1]
+    # Use the user-selected time record
+    selected_record = df_filtered[df_filtered['측정일시'].dt.strftime('%Y-%m-%d %H:%M') == selected_time_str]
+    latest_record = selected_record.iloc[0] if not selected_record.empty else df_filtered.iloc[-1]
     observed_pm10 = latest_record['PM10']
     
     # Detect keyword
